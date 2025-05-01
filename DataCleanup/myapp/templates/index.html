@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Smart Data Cleaner</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #336699; }
+        button { margin: 5px; padding: 10px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        input[type=file] { margin: 10px 0; }
+        #output { margin-top: 20px; background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 5px; white-space: pre-wrap; }
+    </style>
+    <script>
+        function uploadDataset() {
+            const formData = new FormData();
+            const fileInput = document.getElementById('dataset');
+            if (!fileInput.files.length) {
+                alert("Please select a file first.");
+                return;
+            }
+            formData.append('dataset', fileInput.files[0]);
+            setStatus("Uploading file...");
+            fetch('/upload', { method: 'POST', body: formData })
+                .then(response => response.text())
+                .then(data => {
+                    setStatus("");
+                    document.getElementById('output').innerHTML = data;
+                });
+        }
+
+        function runTask(task) {
+            setStatus("Running " + task + "...");
+            fetch(`/run_task/${task}`)
+                .then(response => {
+                    setStatus("");
+                    if (task === 'export') {
+                        return response.blob().then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'cleaned_dataset.xlsx';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                        });
+                    } else {
+                        return response.text().then(data => document.getElementById('output').innerHTML = data);
+                    }
+                });
+        }
+
+        function setStatus(message) {
+            document.getElementById('status').innerText = message;
+        }
+    </script>
+</head>
+<body>
+    <h1>Smart Data Cleaner</h1>
+    <input type="file" id="dataset" accept=".csv, .xlsx">
+    <button onclick="uploadDataset()">Upload Dataset</button>
+    <p id="status"></p>
+    <hr>
+    <button onclick="runTask('assess')">Assess Data</button>
+    <button onclick="runTask('outliers')">Identify Outliers</button>
+    <button onclick="runTask('clean')">Clean Data</button>
+    <button onclick="runTask('correlation')">Correlation Analysis</button>
+    <button onclick="runTask('features')">Feature Extraction</button>
+    <button onclick="runTask('summary')">Summary Statistics</button>
+    <button onclick="runTask('export')">Download Cleaned File</button>
+    <hr>
+    <div id="output"></div>
+</body>
+</html>
